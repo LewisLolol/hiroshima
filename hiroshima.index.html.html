@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>広島の酒とイノベーション クイズ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Serif JP', serif;
+        }
+        .quiz-card {
+            transition: all 0.3s ease;
+        }
+        .option-label {
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        /* Style for the selected option before scoring */
+        input[type="radio"]:checked + .option-label {
+            background-color: #374151; /* gray-700 */
+            border-color: #f59e0b; /* amber-500 */
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+        }
+        .correct {
+            background-color: #166534 !important; /* green-800 */
+            border-color: #16a34a !important; /* green-500 */
+            color: white;
+            box-shadow: 0 0 8px rgba(22, 163, 74, 0.7) !important;
+        }
+        .incorrect {
+            background-color: #991b1b !important; /* red-800 */
+            border-color: #ef4444 !important; /* red-500 */
+            color: white;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.7) !important;
+        }
+        .explanation {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+        }
+        .explanation.show {
+            max-height: 500px; /* Adjust as needed */
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .ai-btn {
+             background-color: #4f46e5; /* indigo-600 */
+             color: white;
+             font-weight: bold;
+             padding: 0.5rem 1rem;
+             border-radius: 0.5rem;
+             margin-top: 1rem;
+             transition: background-color 0.3s;
+             cursor: pointer;
+        }
+        .ai-btn:hover {
+            background-color: #4338ca; /* indigo-700 */
+        }
+        .ai-btn:disabled {
+            background-color: #6b7280; /* gray-500 */
+            cursor: not-allowed;
+        }
+        .ai-response {
+            background-color: #1f2937; /* gray-800 */
+            border-left: 4px solid #4f46e5; /* indigo-600 */
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.25rem;
+            white-space: pre-wrap; /* To preserve line breaks */
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-200 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+
+    <div class="w-full max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-amber-400" style="font-family: 'Noto Serif JP', serif;">広島の酒とイノベーション</h1>
+            <p class="text-lg text-gray-400 mt-2">e-Learning クイズ</p>
+        </header>
+
+        <main id="quiz-container" class="space-y-6"></main>
+
+        <div id="result-container" class="text-center my-8 p-6 bg-slate-800 rounded-xl shadow-lg hidden">
+            <h2 id="result-title" class="text-3xl font-bold text-amber-400 mb-2">採点結果</h2>
+            <p id="result-text" class="text-xl text-white"></p>
+            <div id="ai-pairing-container" class="mt-6"></div>
+        </div>
+
+        <footer class="text-center mt-8">
+            <button id="submit-btn" class="bg-amber-500 text-slate-900 font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-amber-400 transition-colors duration-300 text-lg">
+                採点する
+            </button>
+            <button id="retry-btn" class="hidden bg-gray-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-gray-500 transition-colors duration-300 text-lg">
+                再挑戦する
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        const quizData = [
+            { question: "日本で初めて動力式精米機を開発し、「精米機の父」と称された人物は誰ですか？", options: ["三浦仙三郎", "佐竹利市", "竹鶴政孝", "木村酒造"], answer: "佐竹利市", explanation: "佐竹利市は「精米機の父」と称され、明治時代末期に広島で日本初の動力式精米機を発明しました。" },
+            { question: "佐竹利市が日本初の動力式精米機を開発したのは西暦何年ですか？", options: ["1896年", "1907年", "1908年", "1883年"], answer: "1896年", explanation: "佐竹利市が動力式精米機を開発したのは1896年です。" },
+            { question: "「吟醸酒誕生の地」と呼ばれる理由を持つ、日本三大銘醸地の一つである広島の地名はどこですか？", options: ["灘", "伏見", "東広島（西条）", "新橋"], answer: "東広島（西条）", explanation: "日本三大銘醸地として「灘 伏見 東広島 (西条)」が挙げられており、東広島が吟醸酒誕生の地とされています。" },
+            { question: "東広島が吟醸酒誕生の地と呼ばれる主な理由は何ですか？", options: ["硬水が豊富だったから", "水車精米が盛んだったから", "三浦仙三郎による軟水醸造法の確立と佐竹利市による動力式精米機の開発があったから", "日本で最も古い酒蔵があったから"], answer: "三浦仙三郎による軟水醸造法の確立と佐竹利市による動力式精米機の開発があったから", explanation: "東広島が吟醸酒誕生の地と呼ばれる理由は、「三浦仙三郎（軟水醸造法を確立）」と「佐竹利市（日本初の動力式精米機を開発）」という二つの大きなイノベーションがあったからです。" },
+            { question: "広島の軟水に適した革新的な醸造法を編み出し、「吟醸酒の父」と称される人物は誰ですか？", options: ["佐竹利市", "竹鶴政孝", "三浦仙三郎", "木村酒造の創業者"], answer: "三浦仙三郎", explanation: "三浦仙三郎は「吟醸酒の父」と称され、酒造りには不向きとされた広島の軟水で良質な酒を醸す革新的手法を編み出しました。" },
+            { question: "三浦仙三郎が広島の酒造りのために確立した画期的な醸造法は何ですか？", options: ["硬水醸造法", "高温速醸法", "軟水醸造法", "焼酎併用醸造法"], answer: "軟水醸造法", explanation: "三浦仙三郎最大の功績は、広島の軟水に適した醸造技術「軟水醸造法」の開発です。彼はこの「軟水醸造法（改良醸造法）」を確立しました。" },
+            { question: "三浦仙三郎が試行錯誤の末に「軟水醸造法（改良醸造法）」を確立したのは西暦何年ですか？", options: ["1883年", "1892年", "1897年", "1907年"], answer: "1897年", explanation: "三浦仙三郎が試行錯誤の末に「軟水醸造法（改良醸造法）」を確立したのは1897年です。" },
+            { question: "三浦仙三郎が困難に直面しながらも酒造りに取り組む上で掲げた座右の銘は何ですか？", options: ["一期一会", "百試千改", "温故知新", "七転八起"], answer: "百試千改", explanation: "三浦仙三郎は困難に直面しながらも、「百試千改（ひゃくしせんかい）」を座右の銘に掲げ、何度も試行錯誤を重ねました。" },
+            { question: "軟水醸造法の要点として、正しい組み合わせはどれですか？", options: ["麹をしっかり育てる、高温で仕込む、勘に頼る", "麹をしっかり育てる、低温で仕込む、温度管理と衛生管理を徹底する", "麹は不要、高温で仕込む、大量生産優先", "麹は控えめ、常温で仕込む、水車精米を重視"], answer: "麹をしっかり育てる、低温で仕込む、温度管理と衛生管理を徹底する", explanation: "軟水醸造法の要点は、「麹をしっかり育てる」「低温で仕込む」「温度管理と衛生管理を徹底する」というものです。" },
+            { question: "東京で開催された第1回全国清酒品評会で、広島の酒が圧倒的勝利を収めたのは西暦何年ですか？", options: ["1897年", "1907年", "1908年", "1883年"], answer: "1907年", explanation: "東京で開催の第1回全国清酒品評会で広島の酒が圧倒的勝利を収めたのは1907年です。" },
+            { question: "第1回全国清酒品評会における広島勢の成果として、正しい記述はどれですか？", options: ["ほとんど受賞できなかった", "伝統的名醸地に及ばなかった", "全48点中18点を占め、受賞率約75%で圧倒的勝利を収めた", "灘とほぼ同じ受賞率だった"], answer: "全48点中18点を占め、受賞率約75%で圧倒的勝利を収めた", explanation: "第1回全国清酒品評会で、広島勢は全48点中18点を占め、受賞率約75％で圧倒的勝利を収めました。これは伝統的名醸地である兵庫県（灘）の約58％を上回る結果でした。" },
+            { question: "現在、広島県内にはいくつ以上の酒蔵が操業しているとされていますか？", options: ["約20社", "約30社", "約40社", "約50社"], answer: "約40社", explanation: "現在、安芸津や西条をはじめ広島県内には40を超える酒蔵が操業しています。資料によると広島県の酒蔵は45社とされています。" },
+            { question: "「真吟」の定義は、何を見て判断するとされていますか？", options: ["米の見た目", "精米機の種類", "数値（白米と玄米の長さ、厚さ、幅）", "精米時間"], answer: "数値（白米と玄米の長さ、厚さ、幅）", explanation: "「真吟の定義」は、「見た目ではなく数値で判断」され、白米と玄米の長さ、厚さ、幅が基準となります。" },
+            { question: "真吟酒の特長として、次のうち適切ではないものはどれですか？", options: ["マスカット様の香り", "アミノ酸度が高く、濃厚な味わい", "貯蔵劣化しにくい", "米を無駄なく利用し、使用エネルギーを削減"], answer: "アミノ酸度が高く、濃厚な味わい", explanation: "真吟酒の特長には「醸造した日本酒はアミノ酸度が低く スッキリとした味わい」とあります。したがって、「アミノ酸度が高く、濃厚な味わい」は真吟酒の特長ではありません。" },
+            { question: "吟醸酒の定義として、精米歩合は何％以下に磨いた米を使用するとされていますか？", options: ["80％以下", "70％以下", "60％以下", "50％以下"], answer: "60％以下", explanation: "吟醸酒とは精米歩合60％以下に磨いた米を使い、低温長期発酵で醸す酒と定義されています。" },
+            { question: "広島が灘・伏見と並ぶ日本三大銘醸地の一つに数えられるようになった主な理由は何ですか？", options: ["早くから硬水が発見されたから", "佐竹利市が最初に酒蔵を建てたから", "第1回全国清酒品評会での圧倒的勝利と、その後の全国新酒鑑評会でのたびたびの上位入賞", "全国で最も酒蔵が多いから"], answer: "第1回全国清酒品評会での圧倒的勝利と、その後の全国新酒鑑評会でのたびたびの上位入賞", explanation: "広島は第1回全国清酒品評会で圧倒的勝利を収め、以後、全国新酒鑑評会でもたびたび上位入賞を果たしたことで、灘・伏見と並ぶ日本三大銘醸地の一つに数えられるようになりました。" },
+            { question: "精米機が誕生する以前、米の精米は主にどのような方法で行われていましたか？", options: ["電動式精米機", "ガス式精米機", "水車精米や足踏み式精米（人力）", "熱風精米"], answer: "水車精米や足踏み式精米（人力）", explanation: "精米機が誕生する以前は、水車精米や足踏み式精米（人力）といった方法が用いられていました。" },
+            { question: "広島の酒造りが抱えていた「大きな問題」の一つで、三浦仙三郎が解決に挑んだのは何ですか？", options: ["米が不足すること", "井戸水が軟水で発酵力が弱いこと", "杜氏の数が少なかったこと", "気温が高すぎること"], answer: "井戸水が軟水で発酵力が弱いこと", explanation: "東広島の酒造りは、「井戸水が軟水で発酵力が弱い」「雑菌が繁殖して酒が腐る」という大きな問題を抱えており、三浦仙三郎はこの軟水に適した醸造法の開発に挑みました。" },
+            { question: "現在、「杜氏の里」「広島杜氏発祥の地」として知られる三浦仙三郎の故郷はどこですか？", options: ["西条", "灘", "安芸津町三津", "福山"], answer: "安芸津町三津", explanation: "三浦仙三郎の故郷・安芸津町三津は「杜氏の里」「広島杜氏発祥の地」として知られています。" },
+            { question: "佐竹利市が創業した佐竹製作所（現・株式会社サタケ）が、精米技術の世界的リーディングカンパニーとして現在も拠点を構え続けている場所はどこですか？", options: ["東京", "大阪", "広島", "京都"], answer: "広島", explanation: "佐竹利市が創業した佐竹製作所（現・株式会社サタケ）は、精米技術の世界的リーディングカンパニーとして現在も広島に拠点を構え続けています。" }
+        ];
+
+        const quizContainer = document.getElementById('quiz-container');
+        const resultContainer = document.getElementById('result-container');
+        const resultTitle = document.getElementById('result-title');
+        const resultText = document.getElementById('result-text');
+        const submitBtn = document.getElementById('submit-btn');
+        const retryBtn = document.getElementById('retry-btn');
+        const aiPairingContainer = document.getElementById('ai-pairing-container');
+
+        let currentQuestions = [];
+
+        const callGemini = async (prompt, button, outputElement) => {
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            
+            button.disabled = true;
+            button.textContent = 'AIが生成中...';
+            outputElement.innerHTML = '<div class="text-center p-4">...</div>';
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+            };
+
+            let response;
+            let retries = 3;
+            let delay = 1000;
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) break;
+                } catch (error) {
+                    if (i === retries - 1) {
+                         outputElement.textContent = 'APIの呼び出しに失敗しました。時間をおいて再試行してください。';
+                         button.textContent = '✨AIでもう一度試す';
+                         button.disabled = false;
+                         return;
+                    }
+                }
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+
+            try {
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    outputElement.textContent = text;
+                } else {
+                    outputElement.textContent = 'AIからの応答がありませんでした。';
+                }
+            } catch (error) {
+                outputElement.textContent = '応答の解析中にエラーが発生しました。';
+            } finally {
+                // Keep button disabled after first successful generation to avoid multiple calls
+                if (button.id.includes('ai-expl-btn')) {
+                    button.textContent = '✨AIによる解説済み';
+                } else {
+                    button.textContent = '✨ペアリング提案済み';
+                }
+            }
+        };
+
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function loadQuiz() {
+            resultContainer.classList.add('hidden');
+            aiPairingContainer.innerHTML = '';
+            submitBtn.classList.remove('hidden');
+            retryBtn.classList.add('hidden');
+            quizContainer.innerHTML = '';
+
+            shuffleArray(quizData);
+            currentQuestions = quizData.slice(0, 5);
+
+            currentQuestions.forEach((q, index) => {
+                const questionEl = document.createElement('div');
+                questionEl.classList.add('quiz-card', 'bg-slate-800', 'p-6', 'rounded-xl', 'shadow-lg');
+                questionEl.id = `question-card-${index}`;
+
+                const optionsHTML = q.options.map((option, optionIndex) => `
+                    <div>
+                        <input type="radio" name="question${index}" id="q${index}o${optionIndex}" value="${option}" class="hidden">
+                        <label for="q${index}o${optionIndex}" class="option-label block w-full p-4 rounded-lg border-2 border-slate-600 cursor-pointer hover:bg-slate-700 hover:border-amber-400">
+                            ${option}
+                        </label>
+                    </div>
+                `).join('');
+
+                questionEl.innerHTML = `
+                    <p class="text-lg font-bold mb-4"><span class="text-amber-400 text-2xl mr-2">Q${index + 1}.</span>${q.question}</p>
+                    <div class="space-y-3">${optionsHTML}</div>
+                    <div id="explanation-${index}" class="explanation mt-4">
+                        <div class="p-4 bg-slate-900 rounded-lg text-gray-300">
+                           <p><strong class="text-amber-400">解説：</strong>${q.explanation}</p>
+                        </div>
+                        <div id="ai-explanation-container-${index}"></div>
+                    </div>
+                `;
+                quizContainer.appendChild(questionEl);
+            });
+        }
+
+        function scoreQuiz() {
+            let score = 0;
+            const allLabels = quizContainer.querySelectorAll('.option-label');
+            allLabels.forEach(label => {
+                label.style.pointerEvents = 'none';
+                label.classList.remove('hover:bg-slate-700', 'hover:border-amber-400');
+            });
+            const allInputs = quizContainer.querySelectorAll('input[type="radio"]');
+            allInputs.forEach(input => input.disabled = true);
+
+            currentQuestions.forEach((q, index) => {
+                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
+                const explanationEl = document.getElementById(`explanation-${index}`);
+                const correctOptionIndex = q.options.findIndex(opt => opt === q.answer);
+                const correctLabel = document.querySelector(`label[for="q${index}o${correctOptionIndex}"]`);
+
+                if (selectedOption) {
+                    const selectedLabel = document.querySelector(`label[for="${selectedOption.id}"]`);
+                    if (selectedOption.value === q.answer) {
+                        score++;
+                        selectedLabel.classList.add('correct');
+                    } else {
+                        selectedLabel.classList.add('incorrect');
+                        if (correctLabel) {
+                            correctLabel.style.borderColor = '#16a34a';
+                            correctLabel.style.boxShadow = '0 0 10px #16a34a';
+                        }
+                    }
+                    explanationEl.classList.add('show');
+                    
+                    const aiContainer = document.getElementById(`ai-explanation-container-${index}`);
+                    const aiBtn = document.createElement('button');
+                    aiBtn.className = 'ai-btn';
+                    aiBtn.id = `ai-expl-btn-${index}`;
+                    aiBtn.textContent = '✨AIでもっと詳しく解説';
+                    const aiResponseEl = document.createElement('div');
+                    aiResponseEl.className = 'ai-response';
+                    
+                    aiBtn.onclick = () => {
+                        const prompt = `日本の広島の日本酒に関するクイズです。問題「${q.question}」の正解は「${q.answer}」です。このトピックについて、初心者にも分かりやすく、さらに面白い豆知識や背景を交えて詳しく解説してください。`;
+                        callGemini(prompt, aiBtn, aiResponseEl);
+                    };
+                    
+                    aiContainer.appendChild(aiBtn);
+                    aiContainer.appendChild(aiResponseEl);
+
+                } else {
+                    if (correctLabel) {
+                        correctLabel.style.borderColor = '#16a34a';
+                        correctLabel.style.boxShadow = '0 0 10px #16a34a';
+                    }
+                }
+            });
+
+            resultText.textContent = `${currentQuestions.length}問中 ${score}問 正解です！`;
+            if(score === 5) {
+                resultTitle.textContent = "全問正解！素晴らしい！";
+                resultText.textContent = "あなたは広島の酒とイノベーションのエキスパートです！";
+            } else if (score >= 3) {
+                resultTitle.textContent = "素晴らしい成績です！";
+            } else {
+                resultTitle.textContent = "お疲れ様でした！";
+            }
+
+            const pairingBtn = document.createElement('button');
+            pairingBtn.className = 'ai-btn';
+            pairingBtn.id = 'ai-pairing-btn';
+            pairingBtn.textContent = '✨AIにおすすめの広島酒とペアリングを聞く';
+            const pairingResponseEl = document.createElement('div');
+            pairingResponseEl.className = 'ai-response';
+            pairingBtn.onclick = () => {
+                const prompt = `私は広島の日本酒に関するクイズで5問中${score}問正解しました。この結果を踏まえて、今の私にぴったりのおすすめの広島の日本酒のタイプ（例：吟醸酒、純米酒など）と、それに合う料理のペアリングを一つ、魅力的に提案してください。`;
+                callGemini(prompt, pairingBtn, pairingResponseEl);
+            };
+            aiPairingContainer.appendChild(pairingBtn);
+            aiPairingContainer.appendChild(pairingResponseEl);
+
+            resultContainer.classList.remove('hidden');
+            submitBtn.classList.add('hidden');
+            retryBtn.classList.remove('hidden');
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        submitBtn.addEventListener('click', scoreQuiz);
+        retryBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(loadQuiz, 300);
+        });
+
+        loadQuiz();
+    </script>
+</body>
+</html>
