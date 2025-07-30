@@ -134,7 +134,11 @@
         let currentQuestions = [];
 
         const callGemini = async (prompt, button, outputElement) => {
-            const apiKey = ""; 
+            const apiKey = window.GEMINI_API_KEY || "";
+            if (!apiKey) {
+                outputElement.textContent = 'APIキーが設定されていません。window.GEMINI_API_KEY にキーを設定してください。';
+                return;
+            }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             
             button.disabled = true;
